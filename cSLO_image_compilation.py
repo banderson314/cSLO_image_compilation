@@ -31,22 +31,16 @@ def list_mice(input_directory):
 
 def compile_images(image_files, mouse_list, input_directory):
     # Determining the size of the compilation document
-    print("Determining size of compiled document. 0%", end='\r')
-    max_width = 0
-    max_height = 0
-    for i, image_path in enumerate(image_files):
-        current_image = Image.open(image_path)
-        if max_width < current_image.width:
-            max_width = current_image.width
-        if max_height < current_image.height:
-            max_height = current_image.height
-        percent_done = round(100 * i / len(image_files))
-        print(f"Determining size of compiled document. {percent_done}%", end='\r')
-    print(f"Determining size of compiled document. 100%")
+    example_image = Image.open(image_files[0])
+    image_width = example_image.width
+    image_height = example_image.height
 
-    compilation_width = int(max_width * len(image_files) / 2)   # Divide by 2 because we have two rows (BAF/IRAF)
+    width_of_images = int(image_width * len(image_files) / 2)   # Divide by 2 because we have two rows (BAF/IRAF)
+    margin_size = 45
+    width_of_margins = int(len(mouse_list) * margin_size)
+    compilation_width = width_of_images + width_of_margins
     y_offset = 500
-    compilation_height = int((max_height * 2) + y_offset)
+    compilation_height = int((image_height * 2) + y_offset)
     background_color = (255, 255, 255)
     compiled_image = Image.new('RGB', (compilation_width, compilation_height), background_color)
 
@@ -61,6 +55,8 @@ def compile_images(image_files, mouse_list, input_directory):
     current_image_number = 0
     total_images = len(image_files)
 
+    margin_gap = 0
+
     for i, mouse in enumerate(mouse_list):
         current_mouse_files = []
         for image in image_files:
@@ -69,7 +65,8 @@ def compile_images(image_files, mouse_list, input_directory):
         if len(current_mouse_files) != 4:
             print(f"Unexpected number of files in mouse {mouse}. Number of files: {len(current_mouse_files)}")
 
-        x_offset = i * max_width * 2
+        x_offset = i * image_width * 2 + margin_gap
+        margin_gap += margin_size
         # y_offset is defined above when making the compiled image
 
         font = ImageFont.truetype("arial.ttf", 100)
@@ -81,12 +78,12 @@ def compile_images(image_files, mouse_list, input_directory):
                 if "BAF" in os.path.basename(image_path):
                     compiled_image.paste(image, (x_offset, y_offset))
                 if "IRAF" in os.path.basename(image_path):
-                    compiled_image.paste(image, (x_offset, y_offset + max_height))
+                    compiled_image.paste(image, (x_offset, y_offset + image_height))
             elif "OS" in os.path.basename(image_path):
                 if "BAF" in os.path.basename(image_path):
-                    compiled_image.paste(image, (x_offset + max_width, y_offset))
+                    compiled_image.paste(image, (x_offset + image_width, y_offset))
                 if "IRAF" in os.path.basename(image_path):
-                    compiled_image.paste(image, (x_offset + max_width, y_offset + max_height))
+                    compiled_image.paste(image, (x_offset + image_width, y_offset + image_height))
             else:
                 continue
             current_image_number += 1
