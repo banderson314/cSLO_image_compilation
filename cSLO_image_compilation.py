@@ -62,6 +62,7 @@ def user_defined_settings(number_of_mice):
         number_of_columns = int(column_entry.get())
         window.destroy()
         window.master.destroy()
+        root.destroy()
 
     def on_close_window(event=None):
         exit()
@@ -113,7 +114,7 @@ def user_defined_settings(number_of_mice):
                 column_entry.delete(0, tk.END)
                 column_entry.insert(0, str(column_number))
         except ValueError:
-            columns_entry.delete(0, tk.END)
+            column_entry.delete(0, tk.END)
 
     # When the "column" entry box is changed, this activates
     def update_rows(*args):
@@ -156,11 +157,12 @@ def compile_images(image_files, mouse_list, input_directory):
 
     width_of_column_margins = int(len(mouse_list) * column_margin_size)
     x_offset = 400
-    compilation_width = width_of_images + width_of_column_margins + x_offset + 100
+    #compilation_width = width_of_images + width_of_column_margins + x_offset + 100
+    compilation_width = number_of_columns * (image_width * 2 + column_margin_size) + x_offset + 800 # REMOVE THE +800. THAT WAS JUST TO SEE WHAT WAS HAPPEING AT THE THE END
     y_offset = 700
 
     if document_title == "":
-        y_offset = 450
+        y_offset -= 250
         subtitle_y = 35
     else:
         subtitle_y = 230
@@ -194,9 +196,8 @@ def compile_images(image_files, mouse_list, input_directory):
     current_image_number = 0
     total_images = len(image_files)
 
-    column_margin_gap = 0
-
-    column_tracker = 0
+    current_column = 0
+    current_row = 0
     y_offset_addition = image_height * 2 + row_margin_size
 
     for i, mouse in enumerate(mouse_list):
@@ -207,13 +208,12 @@ def compile_images(image_files, mouse_list, input_directory):
         if len(current_mouse_files) != 4:
             print(f"Unexpected number of files in mouse {mouse}. Number of files: {len(current_mouse_files)}")
 
-        image_x_offset = column_tracker * image_width * 2 + column_margin_gap + x_offset
-        column_margin_gap += column_margin_size
+        image_x_offset = current_column * (image_width * 2 + column_margin_size) + x_offset
         # y_offset is defined above when making the compiled image
-        if column_tracker < number_of_columns:
-            column_tracker += 1
+        if current_column < number_of_columns:
+            current_column += 1
         else:
-            column_tracker = 0
+            current_column = 0
             y_offset = y_offset + y_offset_addition
 
         # Typing the mouse number text
@@ -235,7 +235,7 @@ def compile_images(image_files, mouse_list, input_directory):
         OS_text_x = center_text_between_images("OS", eye_font, OS_x1, OS_x2)
         draw.text((OS_text_x, y_offset - 150), "OS", fill=text_color, font = eye_font)
 
-
+        # Placing the cSLO images in the document
         for image_path in current_mouse_files:
             image = Image.open(image_path)
             if "OD" in os.path.basename(image_path):
@@ -264,15 +264,14 @@ def compile_images(image_files, mouse_list, input_directory):
     return completed_file_path
 
 # Define the input directory where your images are located
-#input_directory = select_input_directory()
-input_directory = "/Users/Brandon/Documents/Sodium iodate cSLO project/Image compilation project/cSLO"
+input_directory = select_input_directory()
+#input_directory = "Z:/Brandon/Experiments/Sodium iodate/140 20 mg kg NaIO3 young mice - GA/cSLO"
 
 
 
 mouse_list = list_mice(input_directory)
 
-print("List of mice:")
-print(mouse_list)
+print(f"Number of mice found: {len(mouse_list)}")
 
 image_files = find_image_files(input_directory)
 print(f"Images found: {len(image_files)}")
