@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageTk
 import os
 import subprocess
 import math
@@ -31,12 +31,6 @@ def center_text_between_images(text, font, x1, x2):
     text_x = center_position - text_width // 2
     return text_x
 
-def center_text_between_images_horizontal(text, font, y1, y2):
-    center_position = (y1 + y2) // 2
-    text_bbox = font.getbbox(text)
-    text_height = text_bbox[3] - text_bbox[1]
-    text_y = center_position - text_height // 2
-    return text_y
 
 def determine_row_and_column_number(number_of_mice):
     square_root = math.sqrt(number_of_mice)
@@ -145,20 +139,80 @@ def user_defined_settings(number_of_mice):
     root.mainloop()
 
 
+def user_select_from_multiple_images(image_paths):
+    # Function to handle image click event
+    def image_click(image_path):
+        root.destroy()
+        root.selected_image = image_path
+                
+    def on_close_window(event=None):
+        exit()
+
+    
+    def center_window(window):
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+
+        x_coordinate = (screen_width - width) // 2
+        y_coordinate = (screen_height - height) // 2
+
+        window.geometry(f"{width}x{height}+{x_coordinate}+{y_coordinate}")
+
+
+    root = tk.Tk()
+    root.title("Image Selection")
+    root.protocol("WM_DELETE_WINDOW", on_close_window)
+
+    # Create a list to hold PhotoImage objects
+    resized_images = []
+
+    # Load images and display them in the tkinter window
+    for path in image_paths:
+        original_image = Image.open(path)
+        resized_image = original_image.resize((int(original_image.width * 0.5), int(original_image.height * 0.5)))
+        photo = ImageTk.PhotoImage(resized_image)
+        resized_images.append(photo)
+        label = tk.Label(root, image=photo)
+        label.image = photo  # Keep a reference to the image to prevent garbage collection
+        label.pack(side=tk.LEFT, padx=5, pady=5)  # Display images in a row with padding
+
+
+        # Bind the click event to the image label
+        label.bind("<Button-1>", lambda event, image_path=path: image_click(image_path))
+
+    root.bind("<Escape>", on_close_window)
+
+    # Center the window on the screen
+    root.after(10, lambda: center_window(root))
+
+    
+    # Start the Tkinter main loop
+    root.mainloop()
+
+
+
+    return root.selected_image if hasattr(root, 'selected_image') else None
+
+    
+
+
 def compile_images(image_files, mouse_list, input_directory):
     # Determining the size of the compilation document
     example_image = Image.open(image_files[0])
     image_width = example_image.width
     image_height = example_image.height
 
-    width_of_images = int(image_width * len(image_files) / 2)   # Divide by 2 because we have two rows (BAF/IRAF)
     column_margin_size = 45
     row_margin_size = 400
 
     width_of_column_margins = int(len(mouse_list) * column_margin_size)
     x_offset = 400
     #compilation_width = width_of_images + width_of_column_margins + x_offset + 100
-    compilation_width = number_of_columns * (image_width * 2 + column_margin_size) + x_offset + 800 # REMOVE THE +800. THAT WAS JUST TO SEE WHAT WAS HAPPEING AT THE THE END
+    compilation_width = number_of_columns * (image_width * 2 + column_margin_size) + x_offset 
     y_offset = 700
 
     if document_title == "":
@@ -205,16 +259,29 @@ def compile_images(image_files, mouse_list, input_directory):
         for image in image_files:
             if mouse in os.path.basename(image):
                 current_mouse_files.append(image)
+        
         if len(current_mouse_files) != 4:
-            print(f"Unexpected number of files in mouse {mouse}. Number of files: {len(current_mouse_files)}")
+            new_current_mouse_files = []
+            #print(f"Unexpected number of files in mouse {mouse}. Number of files: {len(current_mouse_files)}")
+            images_needed = ["OD_BAF", "OD_IRAF", "OS_BAF", "OS_IRAF"]
+            for image_type in images_needed:
+                multiple_images_of_one_type = []
+                for file in current_mouse_files:
+                    if image_type in os.path.basename(file):
+                        multiple_images_of_one_type.append(file)
+                if len(multiple_images_of_one_type) == 1:
+                    new_current_mouse_files.append(multiple_images_of_one_type[0])
+                elif len(multiple_images_of_one_type) > 1:
+                    selected_image = user_select_from_multiple_images(multiple_images_of_one_type)
+                    new_current_mouse_files.append(selected_image)
+            current_mouse_files = new_current_mouse_files
+        
+
+        # Filter out 'None' values from the list
+        current_mouse_files = [image for image in current_mouse_files if image is not None]
 
         image_x_offset = current_column * (image_width * 2 + column_margin_size) + x_offset
         # y_offset is defined above when making the compiled image
-        if current_column < number_of_columns:
-            current_column += 1
-        else:
-            current_column = 0
-            y_offset = y_offset + y_offset_addition
 
         # Typing the mouse number text
         mouse_font = ImageFont.load_default(size=110)
@@ -235,6 +302,7 @@ def compile_images(image_files, mouse_list, input_directory):
         OS_text_x = center_text_between_images("OS", eye_font, OS_x1, OS_x2)
         draw.text((OS_text_x, y_offset - 150), "OS", fill=text_color, font = eye_font)
 
+
         # Placing the cSLO images in the document
         for image_path in current_mouse_files:
             image = Image.open(image_path)
@@ -253,6 +321,15 @@ def compile_images(image_files, mouse_list, input_directory):
             current_image_number += 1
             percent_done = round(100 * current_image_number / total_images)
             print(f"Inserting images into compilation document. {percent_done}%", end='\r')
+        
+        if current_column + 1 < number_of_columns:
+            current_column += 1
+        else:
+            current_column = 0
+            y_offset = y_offset + y_offset_addition
+            image_type_y = center_text_between_images("BAF", image_type_font, y_offset, y_offset + image_height)
+            draw.text((image_type_x, image_type_y), "BAF", fill=text_color, font=image_type_font)
+            draw.text((image_type_x, image_type_y + image_height), "IRAF", fill=text_color, font=image_type_font)
 
     print(f"Inserting images into compilation document. 100%")
 
