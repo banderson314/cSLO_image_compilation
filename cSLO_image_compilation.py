@@ -149,7 +149,7 @@ def user_select_from_multiple_images(image_paths):
         exit()
 
     
-    def center_window(window):
+    def center_dialog_box(window):
         window.update_idletasks()
         width = window.winfo_width()
         height = window.winfo_height()
@@ -187,9 +187,9 @@ def user_select_from_multiple_images(image_paths):
     root.bind("<Escape>", on_close_window)
 
     # Center the window on the screen
-    root.after(10, lambda: center_window(root))
+    root.after(10, lambda: center_dialog_box(root))
 
-    
+
     # Start the Tkinter main loop
     root.mainloop()
 
