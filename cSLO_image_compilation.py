@@ -1,3 +1,8 @@
+# cSLO image compilation
+# Made by Brandon Anderson
+# University of Pennsylvania
+# December 2023
+
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageDraw, ImageFont, ImageTk
